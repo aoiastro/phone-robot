@@ -46,30 +46,19 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         Task { [weak self] in
-            await MainActor.run {
-                guard let self else { return }
-                self.delegate?.speechSynthesizerDidStartSpeaking(self)
-            }
+            await self?.notifyDidStartSpeaking()
         }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { [weak self] in
-            await MainActor.run {
-                guard let self else { return }
-                self.delegate?.speechSynthesizerDidFinishSpeaking(self)
-                try? self.audioSession.setActive(false, options: .notifyOthersOnDeactivation)
-            }
+            await self?.notifyDidFinishSpeaking()
         }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { [weak self] in
-            await MainActor.run {
-                guard let self else { return }
-                self.delegate?.speechSynthesizerDidFinishSpeaking(self)
-                try? self.audioSession.setActive(false, options: .notifyOthersOnDeactivation)
-            }
+            await self?.notifyDidFinishSpeaking()
         }
     }
 
@@ -79,11 +68,21 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
         utterance: AVSpeechUtterance
     ) {
         Task { [weak self] in
-            await MainActor.run {
-                guard let self else { return }
-                self.delegate?.speechSynthesizerService(self, didAdvanceTo: characterRange)
-            }
+            await self?.notifyDidAdvance(to: characterRange)
         }
+    }
+
+    private func notifyDidStartSpeaking() {
+        delegate?.speechSynthesizerDidStartSpeaking(self)
+    }
+
+    private func notifyDidFinishSpeaking() {
+        delegate?.speechSynthesizerDidFinishSpeaking(self)
+        try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    private func notifyDidAdvance(to characterRange: NSRange) {
+        delegate?.speechSynthesizerService(self, didAdvanceTo: characterRange)
     }
 
     static func voiceOptions(for localeIdentifier: String) -> [VoiceOption] {

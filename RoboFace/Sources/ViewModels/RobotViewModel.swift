@@ -76,9 +76,7 @@ final class RobotViewModel: NSObject, ObservableObject {
             do {
                 try await modelService.warmUp(settings: draft) { [weak self] progress in
                     Task { [weak self] in
-                        await MainActor.run {
-                            self?.setDownloadState(active: progress < 1, progress: progress)
-                        }
+                        await self?.applyDownloadState(active: progress < 1, progress: progress)
                     }
                 }
                 statusText = "モデルを準備できました"
@@ -178,9 +176,7 @@ final class RobotViewModel: NSObject, ObservableObject {
         do {
             let response = try await modelService.respond(to: prompt, settings: settings) { [weak self] progress in
                 Task { [weak self] in
-                    await MainActor.run {
-                        self?.setDownloadState(active: progress < 1, progress: progress)
-                    }
+                    await self?.applyDownloadState(active: progress < 1, progress: progress)
                 }
             }
             isThinking = false
@@ -221,6 +217,10 @@ final class RobotViewModel: NSObject, ObservableObject {
     private func setDownloadState(active: Bool, progress: Double) {
         isDownloading = active
         downloadProgress = progress
+    }
+
+    private func applyDownloadState(active: Bool, progress: Double) {
+        setDownloadState(active: active, progress: progress)
     }
 }
 
