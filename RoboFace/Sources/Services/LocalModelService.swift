@@ -1,18 +1,14 @@
 import Foundation
 import LocalLLMClient
 import LocalLLMClientLlama
-import LocalLLMClientMLX
 
 enum LocalModelServiceError: LocalizedError {
     case missingRepositoryID
-    case missingFilename
 
     var errorDescription: String? {
         switch self {
         case .missingRepositoryID:
             return "Hugging Face のリポジトリ ID を入力してください。"
-        case .missingFilename:
-            return "GGUF を使う場合は .gguf ファイル名が必要です。"
         }
     }
 }
@@ -20,12 +16,13 @@ enum LocalModelServiceError: LocalizedError {
 actor LocalModelService {
     private var session: LLMSession?
     private var sessionSignature = ""
+    private let resolver = HuggingFaceModelResolver()
 
     func warmUp(
         settings: AssistantSettings,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws {
-        let model = try makeModel(from: settings)
+        let model = try await makeModel(from: settings)
         try await model.downloadModel { rawProgress in
             progress(max(0.0, min(1.0, Double(rawProgress))))
         }
@@ -38,7 +35,7 @@ actor LocalModelService {
         settings: AssistantSettings,
         progress: @escaping @Sendable (Double) -> Void = { _ in }
     ) async throws -> String {
-        let model = try makeModel(from: settings)
+        let model = try await makeModel(from: settings)
         try await model.downloadModel { rawProgress in
             progress(max(0.0, min(1.0, Double(rawProgress))))
         }
@@ -65,44 +62,26 @@ actor LocalModelService {
         return newSession
     }
 
-    private func makeModel(from settings: AssistantSettings) throws -> LLMSession.DownloadModel {
+    private func makeModel(from settings: AssistantSettings) async throws -> LLMSession.DownloadModel {
         guard !settings.trimmedRepositoryID.isEmpty else {
             throw LocalModelServiceError.missingRepositoryID
         }
 
-        let backend = resolvedBackend(for: settings)
-        switch backend {
-        case .auto, .mlx:
-            return .mlx(
-                id: settings.trimmedRepositoryID,
-                parameter: .init(
-                    temperature: 0.7,
-                    topP: 0.9
-                )
-            )
-        case .llama:
-            guard !settings.trimmedFilename.isEmpty else {
-                throw LocalModelServiceError.missingFilename
-            }
-            return .llama(
-                id: settings.trimmedRepositoryID,
-                model: settings.trimmedFilename,
-                parameter: .init(
-                    temperature: 0.7,
-                    topK: 40,
-                    topP: 0.9
-                )
-            )
+        let modelFilename = if settings.trimmedFilename.isEmpty {
+            try await resolver.resolveGGUFFilename(repositoryID: settings.trimmedRepositoryID)
+        } else {
+            settings.trimmedFilename
         }
-    }
 
-    private func resolvedBackend(for settings: AssistantSettings) -> ModelBackend {
-        switch settings.backend {
-        case .auto:
-            return settings.trimmedFilename.isEmpty ? .mlx : .llama
-        case .mlx, .llama:
-            return settings.backend
-        }
+        return .llama(
+            id: settings.trimmedRepositoryID,
+            model: modelFilename,
+            parameter: .init(
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.9
+            )
+        )
     }
 
     private func signature(for settings: AssistantSettings) -> String {
@@ -114,4 +93,3 @@ actor LocalModelService {
         ].joined(separator: "::")
     }
 }
-

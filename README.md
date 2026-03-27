@@ -14,12 +14,12 @@
 
 ## モデル指定
 
-- MLX の場合:
-  `mlx-community/Qwen3-1.7B-4bit` のように `開発者/モデル名` を入力
-- GGUF の場合:
-  リポジトリ ID に加えて `.gguf` ファイル名も入力
+- 基本:
+  `lmstudio-community/Qwen2.5-1.5B-Instruct-GGUF` のように `開発者/モデル名` を入力
+- 任意:
+  `.gguf` ファイル名も入力可能
 
-設定画面の `自動` モードでは、ファイル名が空なら MLX、ファイル名がある場合は GGUF として扱います。
+ファイル名が空の場合は Hugging Face API から `.gguf` 候補を自動選択します。
 
 ## 実装メモ
 
@@ -27,6 +27,7 @@
 - 日本語のオンデバイス音声認識が未導入の端末では、音声機能が使えないことがあります
 - AltStore で再署名しやすいよう、Actions では未署名 `ipa` を作ります
 - `LocalLLMClient` は 2026-03-27 時点でタグ `0.4.6` 固定だと `mlx-swift-lm` の不安定版依存で解決失敗しやすいため、`project.yml` では `main` ブランチ参照にしています
+- 2026-03-27 時点では Xcode 16.4 の iOS ビルドで `LocalLLMClientMLX` を含めると `mlx-swift-lm` 依存グラフで失敗しやすいため、このアプリは `LocalLLMClientLlama` ベースに寄せています
 - 大きいモデルは iPhone のメモリ制限にかかりやすいので、最初は 1B〜3B 前後のモデル推奨です
 
 ## GitHub Actions

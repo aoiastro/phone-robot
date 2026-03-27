@@ -2,7 +2,6 @@ import Foundation
 
 enum ModelBackend: String, CaseIterable, Codable, Identifiable {
     case auto
-    case mlx
     case llama
 
     var id: String { rawValue }
@@ -11,8 +10,6 @@ enum ModelBackend: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .auto:
             return "自動"
-        case .mlx:
-            return "MLX"
         case .llama:
             return "GGUF"
         }
@@ -21,11 +18,9 @@ enum ModelBackend: String, CaseIterable, Codable, Identifiable {
     var helperText: String {
         switch self {
         case .auto:
-            return "ファイル名が空なら MLX、ファイル名ありなら GGUF として扱います。"
-        case .mlx:
-            return "Hugging Face の `開発者/モデル名` をそのまま指定します。"
+            return "通常はこれで大丈夫です。.gguf ファイル名が空なら自動で候補を探します。"
         case .llama:
-            return "GGUF はリポジトリ ID に加えて `.gguf` ファイル名が必要です。"
+            return "必要なら `.gguf` ファイル名を明示できます。空欄なら候補を自動選択します。"
         }
     }
 }
@@ -34,8 +29,8 @@ struct AssistantSettings: Codable, Equatable {
     static let storageKey = "robo_face.settings"
 
     var backend: ModelBackend = .auto
-    var modelRepositoryID: String = "mlx-community/Qwen3-1.7B-4bit"
-    var modelFilename: String = ""
+    var modelRepositoryID: String = "lmstudio-community/Qwen2.5-1.5B-Instruct-GGUF"
+    var modelFilename: String = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
     var wakeWord: String = "ロボ"
     var speechLocaleIdentifier: String = "ja-JP"
     var voiceIdentifier: String = ""
@@ -84,4 +79,3 @@ struct VoiceOption: Identifiable, Hashable {
         language: "default"
     )
 }
-

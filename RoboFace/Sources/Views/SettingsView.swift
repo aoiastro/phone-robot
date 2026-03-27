@@ -36,7 +36,7 @@ struct SettingsView: View {
                             .autocorrectionDisabled()
                             .textFieldStyle(.roundedBorder)
 
-                        TextField("GGUF ファイル名（任意）", text: $draft.modelFilename)
+                        TextField("GGUF ファイル名（任意・空なら自動検出）", text: $draft.modelFilename)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .textFieldStyle(.roundedBorder)
@@ -94,7 +94,8 @@ struct SettingsView: View {
                     Group {
                         sectionTitle("メモ")
 
-                        Text("MLX を使うと `開発者/モデル名` だけで扱いやすいです。GGUF は `.gguf` のファイル名が必要です。")
+                        Text("現在は iOS ビルド安定性のため GGUF / llama.cpp ルートを使っています。")
+                        Text("`開発者/モデル名` を入れてファイル名を空にすると、Hugging Face API から `.gguf` を自動検出します。")
                         Text("音声認識はオンデバイス限定にしているので、端末に対象言語の音声データがない場合は設定とダウンロードが必要です。")
                         Text("大きいモデルはメモリ制限に引っかかりやすいので、まずは 1B〜3B クラス推奨です。")
                     }

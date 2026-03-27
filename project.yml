@@ -55,8 +55,6 @@ targets:
         product: LocalLLMClient
       - package: LocalLLMClient
         product: LocalLLMClientLlama
-      - package: LocalLLMClient
-        product: LocalLLMClientMLX
 schemes:
   RoboFace:
     build:
