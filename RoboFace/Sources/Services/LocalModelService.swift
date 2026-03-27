@@ -26,7 +26,7 @@ actor LocalModelService {
         try await model.downloadModel { rawProgress in
             progress(max(0.0, min(1.0, Double(rawProgress))))
         }
-        try await prepareSessionIfNeeded(with: model, settings: settings)
+        _ = try await prepareSessionIfNeeded(with: model, settings: settings)
         progress(1.0)
     }
 

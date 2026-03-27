@@ -3,8 +3,11 @@ import Foundation
 import Speech
 
 protocol SpeechRecognizerServiceDelegate: AnyObject {
+    @MainActor
     func speechRecognizerService(_ service: SpeechRecognizerService, didUpdateTranscript transcript: String)
+    @MainActor
     func speechRecognizerService(_ service: SpeechRecognizerService, didMeasureAudioLevel level: Double)
+    @MainActor
     func speechRecognizerService(_ service: SpeechRecognizerService, didFailWith error: Error)
 }
 
@@ -68,7 +71,7 @@ final class SpeechRecognizerService: NSObject {
         guard SFSpeechRecognizer.authorizationStatus() == .authorized else {
             throw SpeechRecognizerServiceError.speechPermissionDenied
         }
-        guard audioSession.recordPermission == .granted else {
+        guard AVAudioApplication.shared.recordPermission == .granted else {
             throw SpeechRecognizerServiceError.microphonePermissionDenied
         }
         guard let speechRecognizer else {
@@ -184,7 +187,7 @@ final class SpeechRecognizerService: NSObject {
             }
         }
         let microphoneAuthorized = await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            AVAudioApplication.requestRecordPermission { granted in
                 continuation.resume(returning: granted)
             }
         }

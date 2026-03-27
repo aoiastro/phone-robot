@@ -2,13 +2,16 @@ import AVFoundation
 import Foundation
 
 protocol SpeechSynthesizerServiceDelegate: AnyObject {
+    @MainActor
     func speechSynthesizerDidStartSpeaking(_ service: SpeechSynthesizerService)
+    @MainActor
     func speechSynthesizerDidFinishSpeaking(_ service: SpeechSynthesizerService)
+    @MainActor
     func speechSynthesizerService(_ service: SpeechSynthesizerService, didAdvanceTo range: NSRange)
 }
 
 @MainActor
-final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
+final class SpeechSynthesizerService: NSObject, @preconcurrency AVSpeechSynthesizerDelegate {
     weak var delegate: SpeechSynthesizerServiceDelegate?
 
     private let synthesizer = AVSpeechSynthesizer()
@@ -41,26 +44,46 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
         try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
-        delegate?.speechSynthesizerDidStartSpeaking(self)
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        Task { [weak self] in
+            await MainActor.run {
+                guard let self else { return }
+                delegate?.speechSynthesizerDidStartSpeaking(self)
+            }
+        }
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        delegate?.speechSynthesizerDidFinishSpeaking(self)
-        try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { [weak self] in
+            await MainActor.run {
+                guard let self else { return }
+                delegate?.speechSynthesizerDidFinishSpeaking(self)
+                try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+            }
+        }
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        delegate?.speechSynthesizerDidFinishSpeaking(self)
-        try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { [weak self] in
+            await MainActor.run {
+                guard let self else { return }
+                delegate?.speechSynthesizerDidFinishSpeaking(self)
+                try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+            }
+        }
     }
 
-    func speechSynthesizer(
+    nonisolated func speechSynthesizer(
         _ synthesizer: AVSpeechSynthesizer,
         willSpeakRangeOfSpeechString characterRange: NSRange,
         utterance: AVSpeechUtterance
     ) {
-        delegate?.speechSynthesizerService(self, didAdvanceTo: characterRange)
+        Task { [weak self] in
+            await MainActor.run {
+                guard let self else { return }
+                delegate?.speechSynthesizerService(self, didAdvanceTo: characterRange)
+            }
+        }
     }
 
     static func voiceOptions(for localeIdentifier: String) -> [VoiceOption] {
@@ -97,4 +120,3 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
         return AVSpeechSynthesisVoice(language: localeIdentifier)
     }
 }
-
