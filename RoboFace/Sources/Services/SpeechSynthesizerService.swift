@@ -10,6 +10,7 @@ protocol SpeechSynthesizerServiceDelegate: AnyObject {
     func speechSynthesizerDidAdvance(to range: NSRange)
 }
 
+@MainActor
 final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
     weak var delegate: SpeechSynthesizerServiceDelegate?
 
@@ -21,7 +22,6 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
         synthesizer.delegate = self
     }
 
-    @MainActor
     func speak(text: String, preferredVoiceIdentifier: String, localeIdentifier: String) {
         stop()
         try? audioSession.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
@@ -37,7 +37,6 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
         synthesizer.speak(utterance)
     }
 
-    @MainActor
     func stop() {
         if synthesizer.isSpeaking {
             synthesizer.stopSpeaking(at: .immediate)
@@ -46,25 +45,20 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
-        let delegate = self.delegate
-        Task { @MainActor in
-            delegate?.speechSynthesizerDidStartSpeaking()
+        Task { @MainActor [weak self] in
+            self?.notifyDidStartSpeaking()
         }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
-        let delegate = self.delegate
-        Task { @MainActor in
-            delegate?.speechSynthesizerDidFinishSpeaking()
+        Task { @MainActor [weak self] in
+            self?.notifyDidFinishSpeaking()
         }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
-        let delegate = self.delegate
-        Task { @MainActor in
-            delegate?.speechSynthesizerDidFinishSpeaking()
+        Task { @MainActor [weak self] in
+            self?.notifyDidFinishSpeaking()
         }
     }
 
@@ -73,10 +67,22 @@ final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
         willSpeakRangeOfSpeechString characterRange: NSRange,
         utterance: AVSpeechUtterance
     ) {
-        let delegate = self.delegate
-        Task { @MainActor in
-            delegate?.speechSynthesizerDidAdvance(to: characterRange)
+        Task { @MainActor [weak self] in
+            self?.notifyDidAdvance(to: characterRange)
         }
+    }
+
+    private func notifyDidStartSpeaking() {
+        delegate?.speechSynthesizerDidStartSpeaking()
+    }
+
+    private func notifyDidFinishSpeaking() {
+        delegate?.speechSynthesizerDidFinishSpeaking()
+        try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    private func notifyDidAdvance(to characterRange: NSRange) {
+        delegate?.speechSynthesizerDidAdvance(to: characterRange)
     }
 
     static func voiceOptions(for localeIdentifier: String) -> [VoiceOption] {
