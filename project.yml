@@ -50,6 +50,9 @@ targets:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_FILE: RoboFace/Info.plist
+        SWIFT_OBJC_INTEROP_MODE: objcxx
+        OTHER_SWIFT_FLAGS: "$(inherited) -cxx-interoperability-mode=default"
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
     dependencies:
       - package: LocalLLMClient
         product: LocalLLMClient
