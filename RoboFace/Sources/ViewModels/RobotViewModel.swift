@@ -75,9 +75,7 @@ final class RobotViewModel: NSObject, ObservableObject {
             setDownloadState(active: true, progress: 0)
             do {
                 try await modelService.warmUp(settings: draft) { [weak self] progress in
-                    Task { [weak self] in
-                        await self?.applyDownloadState(active: progress < 1, progress: progress)
-                    }
+                    self?.setDownloadState(active: progress < 1, progress: progress)
                 }
                 statusText = "モデルを準備できました"
                 errorText = ""
@@ -175,9 +173,7 @@ final class RobotViewModel: NSObject, ObservableObject {
 
         do {
             let response = try await modelService.respond(to: prompt, settings: settings) { [weak self] progress in
-                Task { [weak self] in
-                    await self?.applyDownloadState(active: progress < 1, progress: progress)
-                }
+                self?.setDownloadState(active: progress < 1, progress: progress)
             }
             isThinking = false
             replyText = response
@@ -218,10 +214,6 @@ final class RobotViewModel: NSObject, ObservableObject {
         isDownloading = active
         downloadProgress = progress
     }
-
-    private func applyDownloadState(active: Bool, progress: Double) {
-        setDownloadState(active: active, progress: progress)
-    }
 }
 
 extension RobotViewModel: SpeechRecognizerServiceDelegate {
@@ -252,31 +244,33 @@ extension RobotViewModel: SpeechRecognizerServiceDelegate {
 }
 
 extension RobotViewModel: SpeechSynthesizerServiceDelegate {
-    func speechSynthesizerDidStartSpeaking(_ service: SpeechSynthesizerService) {
+    func speechSynthesizerDidStartSpeaking() {
         isSpeaking = true
         statusText = "話しています..."
     }
 
-    func speechSynthesizerDidFinishSpeaking(_ service: SpeechSynthesizerService) {
+    func speechSynthesizerDidFinishSpeaking() {
         isSpeaking = false
         mouthOpen = 0.12
         statusText = "「\(settings.trimmedWakeWord)」で話しかけてください"
         restartListeningIfPossible()
     }
 
-    func speechSynthesizerService(_ service: SpeechSynthesizerService, didAdvanceTo range: NSRange) {
+    func speechSynthesizerDidAdvance(to range: NSRange) {
         guard isSpeaking else { return }
         withAnimation(.easeOut(duration: 0.08)) {
             mouthOpen = 0.86
         }
         Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(110))
-            await MainActor.run {
-                guard let self, self.isSpeaking else { return }
-                withAnimation(.easeIn(duration: 0.09)) {
-                    self.mouthOpen = 0.22
-                }
-            }
+            await self?.closeMouthIfStillSpeaking()
+        }
+    }
+
+    private func closeMouthIfStillSpeaking() {
+        guard isSpeaking else { return }
+        withAnimation(.easeIn(duration: 0.09)) {
+            mouthOpen = 0.22
         }
     }
 }

@@ -146,10 +146,7 @@ final class SpeechRecognizerService: NSObject {
             self.recognitionRequest?.append(buffer)
             let level = Self.normalizedLevel(from: buffer)
             Task { [weak self] in
-                await MainActor.run {
-                    guard let self else { return }
-                    self.delegate?.speechRecognizerService(self, didMeasureAudioLevel: level)
-                }
+                await self?.notifyDidMeasureAudioLevel(level)
             }
         }
     }
@@ -163,18 +160,12 @@ final class SpeechRecognizerService: NSObject {
 
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self else { return }
-            Task { @MainActor in
+            Task { [weak self] in
                 if let result {
-                    self.delegate?.speechRecognizerService(self, didUpdateTranscript: result.bestTranscription.formattedString)
-                    if result.isFinal, self.isRunning {
-                        self.refreshRecognitionTask()
-                    }
+                    await self?.notifyDidUpdateTranscript(result.bestTranscription.formattedString, isFinal: result.isFinal)
                 }
                 if let error {
-                    self.delegate?.speechRecognizerService(self, didFailWith: error)
-                    if self.isRunning {
-                        self.refreshRecognitionTask()
-                    }
+                    await self?.notifyDidFail(with: error)
                 }
             }
         }
@@ -213,5 +204,23 @@ final class SpeechRecognizerService: NSObject {
         let rms = sqrt(sum / Float(frameLength))
         let normalized = min(max(Double(rms) * 6.0, 0), 1)
         return normalized
+    }
+
+    private func notifyDidMeasureAudioLevel(_ level: Double) {
+        delegate?.speechRecognizerService(self, didMeasureAudioLevel: level)
+    }
+
+    private func notifyDidUpdateTranscript(_ transcript: String, isFinal: Bool) {
+        delegate?.speechRecognizerService(self, didUpdateTranscript: transcript)
+        if isFinal, isRunning {
+            refreshRecognitionTask()
+        }
+    }
+
+    private func notifyDidFail(with error: Error) {
+        delegate?.speechRecognizerService(self, didFailWith: error)
+        if isRunning {
+            refreshRecognitionTask()
+        }
     }
 }

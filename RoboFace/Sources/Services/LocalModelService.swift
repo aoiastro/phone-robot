@@ -20,28 +20,34 @@ actor LocalModelService {
 
     func warmUp(
         settings: AssistantSettings,
-        progress: @escaping @Sendable (Double) -> Void
+        progress: @escaping @MainActor @Sendable (Double) -> Void
     ) async throws {
         let model = try await makeModel(from: settings)
         try await model.downloadModel { rawProgress in
-            progress(max(0.0, min(1.0, Double(rawProgress))))
+            let clamped = max(0.0, min(1.0, Double(rawProgress)))
+            Task { @MainActor in
+                progress(clamped)
+            }
         }
         _ = try await prepareSessionIfNeeded(with: model, settings: settings)
-        progress(1.0)
+        await progress(1.0)
     }
 
     func respond(
         to prompt: String,
         settings: AssistantSettings,
-        progress: @escaping @Sendable (Double) -> Void = { _ in }
+        progress: @escaping @MainActor @Sendable (Double) -> Void = { _ in }
     ) async throws -> String {
         let model = try await makeModel(from: settings)
         try await model.downloadModel { rawProgress in
-            progress(max(0.0, min(1.0, Double(rawProgress))))
+            let clamped = max(0.0, min(1.0, Double(rawProgress)))
+            Task { @MainActor in
+                progress(clamped)
+            }
         }
         let session = try await prepareSessionIfNeeded(with: model, settings: settings)
         session.messages = [.system(settings.systemPrompt)]
-        progress(1.0)
+        await progress(1.0)
         return try await session.respond(to: prompt)
     }
 
