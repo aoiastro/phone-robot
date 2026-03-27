@@ -1,0 +1,9 @@
+.DS_Store
+DerivedData/
+build/
+Payload/
+*.ipa
+*.xcodeproj
+*.xcworkspace
+Package.resolved
+
