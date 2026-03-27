@@ -19,7 +19,7 @@ settings:
 packages:
   LocalLLMClient:
     url: https://github.com/tattn/LocalLLMClient.git
-    from: 0.4.6
+    branch: main
 targets:
   RoboFace:
     type: application
