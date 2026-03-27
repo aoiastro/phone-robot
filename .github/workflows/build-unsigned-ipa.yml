@@ -25,15 +25,23 @@ jobs:
       - name: Allow Swift macro prebuilts
         run: defaults write com.apple.dt.Xcode IDEPackageEnablePrebuilts YES
 
+      - name: Trust Swift macros and package plugins in CI
+        run: |
+          defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+          defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation -bool YES
+          defaults write com.apple.dt.Xcode IDESkipPackagePluginValidation -bool YES
+
       - name: Generate project
         run: xcodegen generate
 
       - name: Resolve packages
-        run: xcodebuild -resolvePackageDependencies -project RoboFace.xcodeproj -scheme RoboFace
+        run: xcodebuild -skipMacroValidation -skipPackagePluginValidation -resolvePackageDependencies -project RoboFace.xcodeproj -scheme RoboFace
 
       - name: Build app
         run: |
           xcodebuild \
+            -skipMacroValidation \
+            -skipPackagePluginValidation \
             -project RoboFace.xcodeproj \
             -scheme RoboFace \
             -configuration Release \
@@ -56,4 +64,3 @@ jobs:
         with:
           name: RoboFace-unsigned-ipa
           path: RoboFace-unsigned.ipa
-

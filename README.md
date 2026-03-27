@@ -38,7 +38,12 @@
 
 1. `brew install xcodegen`
 2. `xcodegen generate`
-3. `open RoboFace.xcodeproj`
+3. 必要なら `defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES`
+4. `open RoboFace.xcodeproj`
+
+## CI メモ
+
+`LocalLLMClient` は Swift macro target を含むため、CI の `xcodebuild` では `-skipMacroValidation` が必要です。package plugin 側で止まる環境では `-skipPackagePluginValidation` と `IDESkipPackagePluginFingerprintValidatation` も併用します。
 
 ## 参考
 
