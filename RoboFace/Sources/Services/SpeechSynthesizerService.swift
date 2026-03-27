@@ -11,7 +11,7 @@ protocol SpeechSynthesizerServiceDelegate: AnyObject {
 }
 
 @MainActor
-final class SpeechSynthesizerService: NSObject, @preconcurrency AVSpeechSynthesizerDelegate {
+final class SpeechSynthesizerService: NSObject, AVSpeechSynthesizerDelegate {
     weak var delegate: SpeechSynthesizerServiceDelegate?
 
     private let synthesizer = AVSpeechSynthesizer()
@@ -48,7 +48,7 @@ final class SpeechSynthesizerService: NSObject, @preconcurrency AVSpeechSynthesi
         Task { [weak self] in
             await MainActor.run {
                 guard let self else { return }
-                delegate?.speechSynthesizerDidStartSpeaking(self)
+                self.delegate?.speechSynthesizerDidStartSpeaking(self)
             }
         }
     }
@@ -57,8 +57,8 @@ final class SpeechSynthesizerService: NSObject, @preconcurrency AVSpeechSynthesi
         Task { [weak self] in
             await MainActor.run {
                 guard let self else { return }
-                delegate?.speechSynthesizerDidFinishSpeaking(self)
-                try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+                self.delegate?.speechSynthesizerDidFinishSpeaking(self)
+                try? self.audioSession.setActive(false, options: .notifyOthersOnDeactivation)
             }
         }
     }
@@ -67,8 +67,8 @@ final class SpeechSynthesizerService: NSObject, @preconcurrency AVSpeechSynthesi
         Task { [weak self] in
             await MainActor.run {
                 guard let self else { return }
-                delegate?.speechSynthesizerDidFinishSpeaking(self)
-                try? audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+                self.delegate?.speechSynthesizerDidFinishSpeaking(self)
+                try? self.audioSession.setActive(false, options: .notifyOthersOnDeactivation)
             }
         }
     }
@@ -81,7 +81,7 @@ final class SpeechSynthesizerService: NSObject, @preconcurrency AVSpeechSynthesi
         Task { [weak self] in
             await MainActor.run {
                 guard let self else { return }
-                delegate?.speechSynthesizerService(self, didAdvanceTo: characterRange)
+                self.delegate?.speechSynthesizerService(self, didAdvanceTo: characterRange)
             }
         }
     }
